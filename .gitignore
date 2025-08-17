@@ -31,8 +31,8 @@ frontend/yarn-error.log*
 frontend/.pnpm-debug.log*
 
 # env files (keep .env tracked, do NOT ignore)
-# .env*
-# .env.local
+backend/.env*
+.env.local
 
 # vercel
 frontend/.vercel
