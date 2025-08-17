@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+crewai
+langchain
+openai
+earthengine-api
+tweepy
+osmnx
