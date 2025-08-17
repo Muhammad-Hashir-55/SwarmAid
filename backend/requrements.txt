@@ -1,1 +1,2 @@
 fastapi uvicorn crewai langchain openai earthengine-api tweepy osmnx
+langchain_openai
