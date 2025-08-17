@@ -11,3 +11,4 @@ def root():
 def analyze_disaster():
     response = data_analyst.think("Analyze damage in Tokyo earthquake")
     return {"analysis": response}
+#salaar
