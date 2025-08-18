@@ -1,7 +1,7 @@
 from langchain.agents import initialize_agent, Tool
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import OutputParserException
-from keys import s, model
+from .keys import s, model
 
 # ✅ Setup LLM (Gemini via LangChain)
 llm = ChatGoogleGenerativeAI(
@@ -31,28 +31,28 @@ data_analyst = initialize_agent(
     handle_parsing_errors=True
 )
 
-# --- Interactive loop ---
-print("🚀 Chat with Data Analyst Agent (type 'exit' to quit)\n")
-print("Role: Senior Geospatial Analyst")
-print("Goal: Identify disaster impact zones using satellite data")
-print("Backstory: Expert in remote sensing and disaster assessment\n")
+# # --- Interactive loop ---
+# print("🚀 Chat with Data Analyst Agent (type 'exit' to quit)\n")
+# print("Role: Senior Geospatial Analyst")
+# print("Goal: Identify disaster impact zones using satellite data")
+# print("Backstory: Expert in remote sensing and disaster assessment\n")
 
-while True:
-    user_input = input("You: ")
-    if user_input.lower() in ["exit", "quit"]:
-        print("👋 Exiting...")
-        break
+# while True:
+#     user_input = input("You: ")
+#     if user_input.lower() in ["exit", "quit"]:
+#         print("👋 Exiting...")
+#         break
 
-    try:
-        response = data_analyst.run(user_input)
-        print(f"\nData Analyst: {response}\n")
-    except OutputParserException as e:
-        # fallback: return raw LLM output instead of crashing
-        print(f"\n⚠️ Parsing issue, showing raw LLM response:\n{str(e)}\n")
-        try:
-            raw_response = llm.invoke(user_input)
-            print(f"Data Analyst (raw): {raw_response.content}\n")
-        except Exception as inner_e:
-            print(f"❌ Fallback also failed: {inner_e}\n")
-    except Exception as e:
-        print(f"⚠️ Unexpected error: {e}\n")
+#     try:
+#         response = data_analyst.run(user_input)
+#         print(f"\nData Analyst: {response}\n")
+#     except OutputParserException as e:
+#         # fallback: return raw LLM output instead of crashing
+#         print(f"\n⚠️ Parsing issue, showing raw LLM response:\n{str(e)}\n")
+#         try:
+#             raw_response = llm.invoke(user_input)
+#             print(f"Data Analyst (raw): {raw_response.content}\n")
+#         except Exception as inner_e:
+#             print(f"❌ Fallback also failed: {inner_e}\n")
+#     except Exception as e:
+#         print(f"⚠️ Unexpected error: {e}\n")

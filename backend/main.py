@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from agents.data_analyst import data_analyst
+from orchestrator.orchestrator import run_simulation
 
 app = FastAPI()
 
@@ -7,10 +7,7 @@ app = FastAPI()
 def root():
     return {"message": "Backend running 🚀"}
 
-@app.get("/analyze")
-def analyze_disaster():
-    response = data_analyst.think("Analyze damage in Tokyo earthquake")
-    return {"analysis": response}
-#salaar
-#hashir
-# new line of comment
+@app.get("/simulate")
+def simulate_crisis(scenario: str = "Tokyo earthquake"):
+    result = run_simulation(scenario)
+    return result
