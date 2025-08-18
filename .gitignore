@@ -33,6 +33,8 @@ frontend/.pnpm-debug.log*
 # env files (keep .env tracked, do NOT ignore)
 backend/.env*
 .env.local
+backend/agents/.env
+backend/agents/keys.py
 
 # vercel
 frontend/.vercel
