@@ -13,4 +13,3 @@ def analyze_disaster():
     return {"analysis": response}
 #salaar
 #hashir
-# yasir
