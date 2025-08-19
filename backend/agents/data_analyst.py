@@ -1,16 +1,21 @@
 from langchain.agents import initialize_agent, Tool
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI  # ✅ Use AIML API wrapper (compatible with OpenAI SDK)
 from langchain.schema import OutputParserException
-from .keys import s, model
+import os
+from .keys import ss # remember if you are testing in this file then remove . from .keys to use while loop
 
-# ✅ Setup LLM (Gemini via LangChain)
-llm = ChatGoogleGenerativeAI(
-    model=model,
-    google_api_key=s,
+# ✅ Load AIML API key
+AIML_API_KEY = ss
+
+# ✅ Setup LLM (GPT-5 via AIML API)
+llm = ChatOpenAI(
+    model="gpt-5-chat-latest",
+    api_key=AIML_API_KEY,
+    base_url="https://api.aimlapi.com/v1",   
     temperature=0.2
 )
 
-# Optional: add tools (expand later, e.g. Google Earth API, GIS libraries)
+# --- Define tools ---
 def analyze_satellite_data(query: str) -> str:
     return f"(Pretend analysis of satellite data: {query})"
 
@@ -22,7 +27,7 @@ tools = [
     )
 ]
 
-# ✅ Build Data Analyst Agent (LangChain)
+# ✅ Build Agent
 data_analyst = initialize_agent(
     tools,
     llm,
