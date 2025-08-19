@@ -1,16 +1,22 @@
 from langchain.agents import initialize_agent, Tool
-from langchain_google_genai import ChatGoogleGenerativeAI
-from .keys import s, model
+from langchain_openai import ChatOpenAI  # ✅ AIML API wrapper
+from langchain.schema import OutputParserException
+from .keys import ss   # ✅ AIML API key
 
-# ✅ Setup LLM (Gemini)
-llm = ChatGoogleGenerativeAI(
-    model=model,
-    google_api_key=s,
+# ✅ Load AIML API key
+AIML_API_KEY = ss
+
+# ✅ Setup LLM (GPT-5 via AIML API)
+llm = ChatOpenAI(
+    model="gpt-5-chat-latest",
+    api_key=AIML_API_KEY,
+    base_url="https://api.aimlapi.com/v1",
     temperature=0.2
 )
 
-# Mock tool for triage (later replace with Twitter API)
+# --- Define tools ---
 def analyze_tweets(query: str) -> str:
+    # 🔹 Placeholder for now, later integrate real Twitter API / cached JSON
     return f"(Pretend triage from tweets: {query})"
 
 tools = [
@@ -21,7 +27,7 @@ tools = [
     )
 ]
 
-# ✅ Build Medic Coordinator Agent (without LangChain memory)
+# ✅ Build Medic Coordinator Agent
 medic_coordinator = initialize_agent(
     tools,
     llm,
@@ -30,28 +36,26 @@ medic_coordinator = initialize_agent(
     handle_parsing_errors=True
 )
 
-# --- Conversation history (manual) ---
-chat_history = []
-
+# # --- Optional interactive loop ---
 # print("🚑 Chat with Medic Coordinator Agent (type 'exit' to quit)\n")
 # print("Role: Emergency Medic Coordinator")
-# print("Goal: Use social media (Twitter) signals to assist in medical triage\n")
-
+# print("Goal: Use social media (Twitter/X signals) to assist in medical triage\n")
+#
 # while True:
 #     user_input = input("You: ")
 #     if user_input.lower() in ["exit", "quit"]:
 #         print("👋 Exiting...")
 #         break
-
-#     # prepend conversation history
-#     context = "\n".join(chat_history)
-#     full_input = f"Conversation so far:\n{context}\nUser: {user_input}"
-
+#
 #     try:
-#         response = medic_coordinator.run(full_input)
+#         response = medic_coordinator.run(user_input)
 #         print(f"\nMedic Coordinator: {response}\n")
-#         # store exchange in history
-#         chat_history.append(f"User: {user_input}")
-#         chat_history.append(f"Medic Coordinator: {response}")
+#     except OutputParserException as e:
+#         print(f"\n⚠️ Parsing issue, showing raw LLM response:\n{str(e)}\n")
+#         try:
+#             raw_response = llm.invoke(user_input)
+#             print(f"Medic Coordinator (raw): {raw_response.content}\n")
+#         except Exception as inner_e:
+#             print(f"❌ Fallback also failed: {inner_e}\n")
 #     except Exception as e:
-#         print(f"⚠️ Error: {e}\n")
+#         print(f"⚠️ Unexpected error: {e}\n")
