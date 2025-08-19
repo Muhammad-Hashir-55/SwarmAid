@@ -1,21 +1,285 @@
 "use client";
-import { useState, useEffect } from "react";
 
-export default function Home() {
-  const [analysis, setAnalysis] = useState("");
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import "leaflet/dist/leaflet.css";
+import ReactMarkdown from "react-markdown";
+import { useMap } from "react-leaflet";
+
+/**
+ * IMPORTANT
+ *  - FastAPI must have CORS enabled for http://localhost:3000
+ *  - This page renders Leaflet client-side via dynamic imports.
+ */
+const MapContainer = dynamic(
+  () => import("react-leaflet").then((m) => m.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import("react-leaflet").then((m) => m.TileLayer),
+  { ssr: false }
+);
+const Polyline = dynamic(
+  () => import("react-leaflet").then((m) => m.Polyline),
+  { ssr: false }
+);
+const Circle = dynamic(
+  () => import("react-leaflet").then((m) => m.Circle),
+  { ssr: false }
+);
+const Popup = dynamic(
+  () => import("react-leaflet").then((m) => m.Popup),
+  { ssr: false }
+);
+
+/* --- Default fallback demo geodata --- */
+function defaultGeo(center = [24.8607, 67.0011], zoom = 6) {
+  return {
+    center,
+    zoom,
+    damageZones: [
+      { center, radius: 20000, label: "Impact Zone" },
+    ],
+    injuryClusters: [{ center, radius: 10000, label: "Injury Cluster" }],
+    safeRoutes: [[center]],
+  };
+}
+
+/* --- Reset map view to geo data --- */
+function ResetView({ geo }) {
+  const map = useMap();
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/analyze")
-      .then(res => res.json())
-      .then(data => setAnalysis(data.analysis));
+    if (!geo) return;
+
+    const allPoints = [];
+
+    geo.damageZones?.forEach((z) => allPoints.push(z.center));
+    geo.injuryClusters?.forEach((c) => allPoints.push(c.center));
+    geo.safeRoutes?.forEach((r) => r.forEach((pt) => allPoints.push(pt)));
+
+    if (allPoints.length > 0) {
+      map.fitBounds(allPoints, { padding: [40, 40] });
+    }
+  }, [geo, map]);
+
+  return null;
+}
+
+export default function Page() {
+  const [scenario, setScenario] = useState("Tokyo earthquake");
+  const [data, setData] = useState(null);
+  const [fetching, setFetching] = useState(false);
+  const [err, setErr] = useState("");
+  const [geo, setGeo] = useState(defaultGeo());
+
+  /* --- Run simulation API --- */
+  const runSimulate = async () => {
+    setErr("");
+    setFetching(true);
+    try {
+      const url = `http://127.0.0.1:8000/simulate?scenario=${encodeURIComponent(
+        scenario
+      )}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setData(json);
+
+      // Auto geocode location part of scenario
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          scenario
+        )}&limit=1`
+      );
+      const geoJson = await geoRes.json();
+
+      if (geoJson && geoJson.length > 0) {
+        const lat = parseFloat(geoJson[0].lat);
+        const lon = parseFloat(geoJson[0].lon);
+        setGeo(defaultGeo([lat, lon], 7));
+      } else {
+        setGeo(defaultGeo()); // fallback
+      }
+    } catch (e) {
+      setErr(
+        `Could not fetch simulation. ${
+          e?.message || e
+        }. Check FastAPI & CORS.`
+      );
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  /* --- Run once on load --- */
+  useEffect(() => {
+    runSimulate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
-      <h1 className="text-4xl font-bold mb-6">🚨 SwarmAid Dashboard</h1>
-      <p className="text-lg bg-gray-800 p-4 rounded-lg">
-        {analysis || "Waiting for analysis..."}
-      </p>
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      {/* Header / Controls */}
+      <header className="sticky top-0 z-10 bg-gray-900/70 backdrop-blur border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold">
+            SwarmAid Dashboard
+          </h1>
+
+          <div className="flex gap-2">
+            <input
+              value={scenario}
+              onChange={(e) => setScenario(e.target.value)}
+              placeholder="Enter a scenario e.g. 'Tokyo earthquake'"
+              className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={runSimulate}
+              disabled={fetching}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-medium"
+            >
+              {fetching ? "Running..." : "Run Simulation"}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main layout */}
+      <main className="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Map */}
+        <section className="lg:col-span-7 xl:col-span-8 h-[70vh] rounded-2xl overflow-hidden border border-gray-800 bg-gray-900">
+          <div className="h-full w-full">
+            <MapContainer
+              center={geo.center}
+              zoom={geo.zoom}
+              scrollWheelZoom={true}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+                url="https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}{r}.png"
+              />
+
+              {/* Damage Zones */}
+              {geo.damageZones.map((z, i) => (
+                <Circle
+                  key={`dz-${i}`}
+                  center={z.center}
+                  radius={z.radius}
+                  pathOptions={{ color: "#ef4444" }}
+                >
+                  <Popup>
+                    <div className="text-sm">
+                      <div className="font-semibold">Damage Zone</div>
+                      <div>{z.label}</div>
+                    </div>
+                  </Popup>
+                </Circle>
+              ))}
+
+              {/* Injury Clusters */}
+              {geo.injuryClusters.map((c, i) => (
+                <Circle
+                  key={`ic-${i}`}
+                  center={c.center}
+                  radius={c.radius}
+                  pathOptions={{ color: "#f59e0b" }}
+                >
+                  <Popup>
+                    <div className="text-sm">
+                      <div className="font-semibold">Injury Cluster</div>
+                      <div>{c.label}</div>
+                    </div>
+                  </Popup>
+                </Circle>
+              ))}
+
+              {/* Safe Routes */}
+              {geo.safeRoutes.map((line, i) => (
+                <Polyline
+                  key={`rt-${i}`}
+                  positions={line}
+                  pathOptions={{ color: "#3b82f6" }}
+                >
+                  <Popup>
+                    <div className="text-sm font-semibold">
+                      Proposed Safe Route
+                    </div>
+                  </Popup>
+                </Polyline>
+              ))}
+
+              <ResetView geo={geo} />
+            </MapContainer>
+          </div>
+        </section>
+
+        {/* Agent Logs */}
+        <aside className="lg:col-span-5 xl:col-span-4 space-y-4">
+          <div className="rounded-2xl border border-gray-800 bg-gray-900">
+            <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Agent Logs</h2>
+              <span className="text-xs text-gray-400">
+                {data?.scenario ? `Scenario: ${data.scenario}` : "No scenario yet"}
+              </span>
+            </div>
+
+            {err && (
+              <div className="px-4 py-3 text-sm text-red-400 border-b border-gray-800">
+                {err}
+              </div>
+            )}
+
+            {!data && !err && (
+              <div className="px-4 py-6 text-sm text-gray-400">
+                Waiting for results…
+              </div>
+            )}
+
+            {data && (
+              <ul className="divide-y divide-gray-800">
+                {data.logs?.map((log, idx) => (
+                  <li key={idx} className="p-4">
+                    <div className="text-sm uppercase tracking-wide text-gray-400 mb-1">
+                      {log.agent}
+                    </div>
+                    <div className="prose prose-invert max-w-none text-sm leading-relaxed">
+                      <ReactMarkdown>{log.response}</ReactMarkdown>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Quick Legend */}
+          <div className="rounded-2xl border border-gray-800 bg-gray-900 p-4">
+            <h3 className="text-sm font-semibold mb-3">Legend</h3>
+            <div className="flex items-center gap-2 text-sm mb-2">
+              <span
+                className="inline-block h-3 w-3 rounded-full"
+                style={{ background: "#ef4444" }}
+              />
+              <span>Damage Zone</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm mb-2">
+              <span
+                className="inline-block h-3 w-3 rounded-full"
+                style={{ background: "#f59e0b" }}
+              />
+              <span>Injury Cluster</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span
+                className="inline-block h-1 w-6"
+                style={{ background: "#3b82f6" }}
+              />
+              <span>Proposed Safe Route</span>
+            </div>
+          </div>
+        </aside>
+      </main>
     </div>
   );
 }
