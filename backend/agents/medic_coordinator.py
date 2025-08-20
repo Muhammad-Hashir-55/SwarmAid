@@ -1,7 +1,7 @@
 from langchain.agents import initialize_agent, Tool
-from langchain_openai import ChatOpenAI  # ✅ AIML API wrapper
-from langchain.schema import OutputParserException
-from .keys import ss   # ✅ AIML API key
+from langchain_openai import ChatOpenAI
+from .keys import ss, api_key, api_key_secret, access_token, access_token_secret
+import tweepy
 
 # ✅ Load AIML API key
 AIML_API_KEY = ss
@@ -14,10 +14,60 @@ llm = ChatOpenAI(
     temperature=0.2
 )
 
-# --- Define tools ---
+# --- Setup Twitter Tweepy Client ---
+auth = tweepy.OAuth1UserHandler(
+    api_key, api_key_secret,
+    access_token, access_token_secret
+)
+api = tweepy.API(auth, wait_on_rate_limit=True)
+
+# --- Tweet Analyzer function ---
 def analyze_tweets(query: str) -> str:
-    # 🔹 Placeholder for now, later integrate real Twitter API / cached JSON
-    return f"(Pretend triage from tweets: {query})"
+    """
+    Search Twitter (X) using Tweepy and summarize disaster-related tweets.
+    Falls back to demo tweets if API fails.
+    """
+    try:
+        tweets = api.search_tweets(
+            q=query + " -filter:retweets AND -filter:replies",
+            lang="en",
+            count=5,
+            tweet_mode="extended"
+        )
+
+        texts = [tweet.full_text for tweet in tweets]
+        if not texts:
+            raise ValueError("No tweets found.")
+
+        print(f"📡 Retrieved {len(texts)} live tweets for query: {query}")
+        for t in texts:
+            print("📝 Tweet:", t[:100], "...")  # show first 100 chars
+
+        # Take first 5 for summarization
+        joined = "\n".join(texts[:5])
+        summary = llm.invoke(
+            f"Summarize urgent medical needs based on these tweets:\n{joined}"
+        )
+        print("✅ Using live Twitter data")
+        return summary.content
+
+    except Exception as e:
+        print(f"🛑 Fallback triggered due to: {e}")
+
+        # 🚑 Fallback dataset
+        fallback_tweets = [
+            "Central hospitals overwhelmed with casualties.",
+            "Eastern districts need urgent trauma care and burn units.",
+            "Shortage of ambulances delaying medical response.",
+            "Rescue workers report crush injuries and fractures.",
+            "Children suffering shock and dehydration in shelters."
+        ]
+        joined = "\n".join(fallback_tweets)
+        summary = llm.invoke(
+            f"(Twitter API unavailable: {e}) Summarize urgent medical needs based on these sample tweets:\n{joined}"
+        )
+        return summary.content
+
 
 tools = [
     Tool(
@@ -36,26 +86,18 @@ medic_coordinator = initialize_agent(
     handle_parsing_errors=True
 )
 
-# # --- Optional interactive loop ---
-# print("🚑 Chat with Medic Coordinator Agent (type 'exit' to quit)\n")
-# print("Role: Emergency Medic Coordinator")
-# print("Goal: Use social media (Twitter/X signals) to assist in medical triage\n")
-#
-# while True:
-#     user_input = input("You: ")
-#     if user_input.lower() in ["exit", "quit"]:
-#         print("👋 Exiting...")
-#         break
-#
-#     try:
-#         response = medic_coordinator.run(user_input)
-#         print(f"\nMedic Coordinator: {response}\n")
-#     except OutputParserException as e:
-#         print(f"\n⚠️ Parsing issue, showing raw LLM response:\n{str(e)}\n")
+# # --- Local interactive test ---
+# if __name__ == "__main__":
+#     print("🚑 Chat with Medic Coordinator Agent (type 'exit' to quit)\n")
+
+#     while True:
+#         user_input = input("You: ")
+#         if user_input.lower() in ["exit", "quit"]:
+#             print("👋 Exiting...")
+#             break
 #         try:
-#             raw_response = llm.invoke(user_input)
-#             print(f"Medic Coordinator (raw): {raw_response.content}\n")
-#         except Exception as inner_e:
-#             print(f"❌ Fallback also failed: {inner_e}\n")
-#     except Exception as e:
-#         print(f"⚠️ Unexpected error: {e}\n")
+#             print("🔎 Checking Twitter for live tweets...")
+#             response = medic_coordinator.run(user_input)
+#             print(f"\nMedic Coordinator: {response}\n")
+#         except Exception as e:
+#             print(f"⚠️ Error: {e}\n")
