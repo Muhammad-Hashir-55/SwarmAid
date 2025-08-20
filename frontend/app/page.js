@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
 import ReactMarkdown from "react-markdown";
@@ -32,36 +32,26 @@ const Popup = dynamic(
   { ssr: false }
 );
 
-/* --- Default fallback demo geodata --- */
-function defaultGeo(center = [24.8607, 67.0011], zoom = 6) {
-  return {
-    center,
-    zoom,
-    damageZones: [
-      { center, radius: 20000, label: "Impact Zone" },
-    ],
-    injuryClusters: [{ center, radius: 10000, label: "Injury Cluster" }],
-    safeRoutes: [[center]],
-  };
-}
-
-/* --- Reset map view to geo data --- */
-function ResetView({ geo }) {
+/* --- Reset map view to fit all features --- */
+function ResetView({ features }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!geo) return;
+    if (!features || features.length === 0) return;
 
-    const allPoints = [];
+    const bounds = [];
+    features.forEach((f) => {
+      if (f.geometry.type === "Point") {
+        bounds.push([f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+      } else if (f.geometry.type === "LineString") {
+        f.geometry.coordinates.forEach((c) => bounds.push([c[1], c[0]]));
+      }
+    });
 
-    geo.damageZones?.forEach((z) => allPoints.push(z.center));
-    geo.injuryClusters?.forEach((c) => allPoints.push(c.center));
-    geo.safeRoutes?.forEach((r) => r.forEach((pt) => allPoints.push(pt)));
-
-    if (allPoints.length > 0) {
-      map.fitBounds(allPoints, { padding: [40, 40] });
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [40, 40] });
     }
-  }, [geo, map]);
+  }, [features, map]);
 
   return null;
 }
@@ -71,7 +61,6 @@ export default function Page() {
   const [data, setData] = useState(null);
   const [fetching, setFetching] = useState(false);
   const [err, setErr] = useState("");
-  const [geo, setGeo] = useState(defaultGeo());
 
   /* --- Run simulation API --- */
   const runSimulate = async () => {
@@ -85,22 +74,6 @@ export default function Page() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setData(json);
-
-      // Auto geocode location part of scenario
-      const geoRes = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          scenario
-        )}&limit=1`
-      );
-      const geoJson = await geoRes.json();
-
-      if (geoJson && geoJson.length > 0) {
-        const lat = parseFloat(geoJson[0].lat);
-        const lon = parseFloat(geoJson[0].lon);
-        setGeo(defaultGeo([lat, lon], 7));
-      } else {
-        setGeo(defaultGeo()); // fallback
-      }
     } catch (e) {
       setErr(
         `Could not fetch simulation. ${
@@ -118,14 +91,14 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const features = data?.geojson?.features || [];
+
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       {/* Header / Controls */}
       <header className="sticky top-0 z-10 bg-gray-900/70 backdrop-blur border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            SwarmAid Dashboard
-          </h1>
+          <h1 className="text-2xl md:text-3xl font-bold">SwarmAid Dashboard</h1>
 
           <div className="flex gap-2">
             <input
@@ -151,66 +124,62 @@ export default function Page() {
         <section className="lg:col-span-7 xl:col-span-8 h-[70vh] rounded-2xl overflow-hidden border border-gray-800 bg-gray-900">
           <div className="h-full w-full">
             <MapContainer
-              center={geo.center}
-              zoom={geo.zoom}
+              center={[20, 0]} // default world view
+              zoom={2}
               scrollWheelZoom={true}
               style={{ height: "100%", width: "100%" }}
             >
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-                url="https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+                url="https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
               />
 
-              {/* Damage Zones */}
-              {geo.damageZones.map((z, i) => (
-                <Circle
-                  key={`dz-${i}`}
-                  center={z.center}
-                  radius={z.radius}
-                  pathOptions={{ color: "#ef4444" }}
-                >
-                  <Popup>
-                    <div className="text-sm">
-                      <div className="font-semibold">Damage Zone</div>
-                      <div>{z.label}</div>
-                    </div>
-                  </Popup>
-                </Circle>
-              ))}
 
-              {/* Injury Clusters */}
-              {geo.injuryClusters.map((c, i) => (
-                <Circle
-                  key={`ic-${i}`}
-                  center={c.center}
-                  radius={c.radius}
-                  pathOptions={{ color: "#f59e0b" }}
-                >
-                  <Popup>
-                    <div className="text-sm">
-                      <div className="font-semibold">Injury Cluster</div>
-                      <div>{c.label}</div>
-                    </div>
-                  </Popup>
-                </Circle>
-              ))}
+              {features.map((f, i) => {
+                if (f.geometry.type === "Point") {
+                  const [lon, lat] = f.geometry.coordinates;
+                  const severity = f.properties?.severity;
+                  const color =
+                    severity === "severe"
+                      ? "#ef4444"
+                      : severity === "moderate"
+                      ? "#f59e0b"
+                      : "#3b82f6";
+                  return (
+                    <Circle
+                      key={`pt-${i}`}
+                      center={[lat, lon]}
+                      radius={1000}
+                      pathOptions={{ color }}
+                    >
+                      <Popup>
+                        <div className="text-sm">
+                          <div className="font-semibold">{f.properties?.name}</div>
+                          <div>{severity || "Cluster"}</div>
+                        </div>
+                      </Popup>
+                    </Circle>
+                  );
+                } else if (f.geometry.type === "LineString") {
+                  const coords = f.geometry.coordinates.map((c) => [c[1], c[0]]);
+                  return (
+                    <Polyline
+                      key={`ln-${i}`}
+                      positions={coords}
+                      pathOptions={{ color: "#3b82f6" }}
+                    >
+                      <Popup>
+                        <div className="text-sm font-semibold">
+                          {f.properties?.name || "Safe Route"}
+                        </div>
+                      </Popup>
+                    </Polyline>
+                  );
+                }
+                return null;
+              })}
 
-              {/* Safe Routes */}
-              {geo.safeRoutes.map((line, i) => (
-                <Polyline
-                  key={`rt-${i}`}
-                  positions={line}
-                  pathOptions={{ color: "#3b82f6" }}
-                >
-                  <Popup>
-                    <div className="text-sm font-semibold">
-                      Proposed Safe Route
-                    </div>
-                  </Popup>
-                </Polyline>
-              ))}
-
-              <ResetView geo={geo} />
+              <ResetView features={features} />
             </MapContainer>
           </div>
         </section>
@@ -251,32 +220,6 @@ export default function Page() {
                 ))}
               </ul>
             )}
-          </div>
-
-          {/* Quick Legend */}
-          <div className="rounded-2xl border border-gray-800 bg-gray-900 p-4">
-            <h3 className="text-sm font-semibold mb-3">Legend</h3>
-            <div className="flex items-center gap-2 text-sm mb-2">
-              <span
-                className="inline-block h-3 w-3 rounded-full"
-                style={{ background: "#ef4444" }}
-              />
-              <span>Damage Zone</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm mb-2">
-              <span
-                className="inline-block h-3 w-3 rounded-full"
-                style={{ background: "#f59e0b" }}
-              />
-              <span>Injury Cluster</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span
-                className="inline-block h-1 w-6"
-                style={{ background: "#3b82f6" }}
-              />
-              <span>Proposed Safe Route</span>
-            </div>
           </div>
         </aside>
       </main>
