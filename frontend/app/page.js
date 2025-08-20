@@ -94,7 +94,7 @@ export default function Page() {
   const features = data?.geojson?.features || [];
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen bg-black text-gray-100">
       {/* Header / Controls */}
       <header className="sticky top-0 z-10 bg-gray-900/70 backdrop-blur border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
