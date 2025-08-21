@@ -221,7 +221,34 @@ export default function Page() {
               </ul>
             )}
           </div>
+
+          {/* ✅ Legend Card */}
+          <div className="rounded-2xl border border-gray-800 bg-gray-900 p-4">
+            <h3 className="text-sm font-semibold mb-3">Legend</h3>
+            <div className="flex items-center gap-2 text-sm mb-2">
+              <span
+                className="inline-block h-3 w-3 rounded-full"
+                style={{ background: "#ef4444" }}
+              />
+              <span>Severe Damage Zone</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm mb-2">
+              <span
+                className="inline-block h-3 w-3 rounded-full"
+                style={{ background: "#f59e0b" }}
+              />
+              <span>Moderate Zone / Injury Cluster</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span
+                className="inline-block h-1 w-6"
+                style={{ background: "#3b82f6" }}
+              />
+              <span>Safe Route</span>
+            </div>
+          </div>
         </aside>
+
       </main>
     </div>
   );
