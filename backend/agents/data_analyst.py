@@ -37,7 +37,7 @@ def _fetch_eonet_events():
     # Open events; raise the limit a bit so we have options
     url = "https://eonet.gsfc.nasa.gov/api/v3/events"
     params = {"status": "open", "limit": 100}
-    r = requests.get(url, params=params, timeout=20)
+    r = requests.get(url, params=params, timeout=30)
     r.raise_for_status()
     return r.json().get("events", [])
 
