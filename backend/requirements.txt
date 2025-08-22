@@ -1,3 +1,25 @@
-fastapi uvicorn crewai langchain openai earthengine-api tweepy osmnx
+fastapi
+uvicorn
+pydantic
+
+# LangChain + OpenAI wrapper
+langchain
 langchain_openai
+
+# Multi-agent / coordination
+crewai
+
+# LLMs / APIs
+openai
+
+# Disaster + data APIs
+earthengine-api
 tweepy
+requests
+
+# Geospatial / routing
+geopy
+osmnx
+
+# Optional: environment + .env support
+python-dotenv

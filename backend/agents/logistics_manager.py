@@ -12,11 +12,23 @@ from langchain.agents import initialize_agent, Tool
 from langchain_openai import ChatOpenAI
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable, GeocoderTimedOut
+import os
 
-from .keys import ss, ORS_API_KEY  # ORS_API_KEY must exist in keys.py (string or "")
+# from .keys import ss, ORS_API_KEY  # ORS_API_KEY must exist in keys.py (string or "")
+#or
+######################################
+from dotenv import load_dotenv
+
+# ✅ Load .env file
+load_dotenv()
+
+# ✅ Read AIML API key
+AIML_API_KEY = os.getenv("ss")
+ORS_API_KEY = os.getenv("ORS_API_KEY")
+########################################
 
 # ----------------- Setup LLM -----------------
-AIML_API_KEY = ss
+# AIML_API_KEY = ss
 llm = ChatOpenAI(
     model="gpt-5-chat-latest",
     api_key=AIML_API_KEY,

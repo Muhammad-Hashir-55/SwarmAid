@@ -2,12 +2,33 @@
 from langchain.agents import initialize_agent, Tool
 from langchain_openai import ChatOpenAI
 from geopy.geocoders import Nominatim
-from .keys import ss, api_key, api_key_secret, access_token, access_token_secret
+# from .keys import ss, api_key, api_key_secret, access_token, access_token_secret
 import tweepy
 import re
+import os
 
-# ✅ Load AIML API key
-AIML_API_KEY = ss
+
+
+# # ✅ Load AIML API key
+# AIML_API_KEY = ss
+
+
+######################################
+from dotenv import load_dotenv
+
+# ✅ Load .env file
+load_dotenv()
+
+# ✅ Read AIML API key
+AIML_API_KEY = os.getenv("ss")
+api_key = os.getenv("api_key")
+api_key_secret = os.getenv("api_key_secret")
+access_token = os.getenv("access_token")
+access_token_secret = os.getenv("access_token_secret")
+
+########################################
+
+
 
 # ✅ Setup LLM (GPT-5 via AIML API)
 llm = ChatOpenAI(

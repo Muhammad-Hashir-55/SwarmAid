@@ -1,10 +1,18 @@
 from langchain.agents import initialize_agent, Tool
 from langchain_openai import ChatOpenAI  # ✅ AIML API wrapper
 from langchain.schema import OutputParserException
-from .keys import ss   # ✅ AIML API key
+import os
+# from .keys import ss   # ✅ AIML API key
+#or
+######################################
+from dotenv import load_dotenv
 
-# ✅ Load AIML API key
-AIML_API_KEY = ss
+# ✅ Load .env file
+load_dotenv()
+
+# ✅ Read AIML API key
+AIML_API_KEY = os.getenv("ss")
+########################################
 
 # ✅ Setup LLM (GPT-5 via AIML API)
 llm = ChatOpenAI(

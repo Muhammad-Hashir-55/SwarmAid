@@ -6,10 +6,21 @@ from math import radians, sin, cos, asin, sqrt
 import requests
 import random
 import datetime as dt
+import os
 
-from .keys import ss  # AIML API key for ChatOpenAI (AIML API wrapper)
+# from .keys import ss  # AIML API key for ChatOpenAI (AIML API wrapper)
+# AIML_API_KEY = ss
+#or
+######################################
+from dotenv import load_dotenv
 
-AIML_API_KEY = ss
+# ✅ Load .env file
+load_dotenv()
+
+# ✅ Read AIML API key
+AIML_API_KEY = os.getenv("ss")
+########################################
+
 
 llm = ChatOpenAI(
     model="gpt-5-chat-latest",
