@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 from geopy.geocoders import Nominatim
 from math import radians, sin, cos, asin, sqrt
 import requests
-import os
+import random
 import datetime as dt
 
 from .keys import ss  # AIML API key for ChatOpenAI (AIML API wrapper)
@@ -28,7 +28,10 @@ def _haversine(lat1, lon1, lat2, lon2):
 
 def _geocode(place: str):
     geolocator = Nominatim(user_agent="swarm-aid")
-    loc = geolocator.geocode(place)
+    try:
+        loc = geolocator.geocode(place, timeout=5)
+    except Exception:
+        loc = None
     if not loc:
         return None
     return (loc.latitude, loc.longitude)
@@ -44,7 +47,7 @@ def _fetch_eonet_events():
 def eonet_hazard_scan(query: str) -> str:
     """
     Geocode the scenario location, pull current EONET hazards,
-    filter to those within ~500km, and summarize implications.
+    filter to those within ~1000km, and summarize implications.
     """
     # 1) Geocode
     loc = _geocode(query)
@@ -87,7 +90,7 @@ def eonet_hazard_scan(query: str) -> str:
         except Exception:
             continue
         d_km = _haversine(lat, lon, ev_lat, ev_lon)
-        if d_km <= 1000:  # within 500 km of scenario
+        if d_km <= 1000:  # within 1000 km of scenario
             nearby.append({
                 "title": ev.get("title", "Event"),
                 "category": ", ".join(cats) if cats else "Uncategorized",
@@ -115,6 +118,44 @@ def eonet_hazard_scan(query: str) -> str:
     summary = llm.invoke(prompt)
     return summary.content
 
+# ---------------- GeoJSON overlay (NEW) ----------------
+def compute_analysis_features(scenario: str):
+    """
+    Create lightweight impact 'assessment clusters' as Points near the scenario center.
+    Returns: {"features": [...], "summary": "..."}
+    """
+    loc = _geocode(scenario)
+    if not loc:
+        return {"features": [], "summary": f"Could not geocode location from '{scenario}'."}
+
+    lat, lon = loc
+
+    # Deterministic-ish offsets for demo (no polygons to keep frontend simple)
+    rnd = random.Random(hash(scenario) & 0xFFFFFFFF)
+    offsets = [
+        (rnd.uniform(0.02, 0.05), rnd.uniform(0.01, 0.04), "severe",  "Assessment Cluster A"),
+        (rnd.uniform(-0.05, -0.02), rnd.uniform(0.02, 0.06), "moderate", "Assessment Cluster B"),
+        (rnd.uniform(0.03, 0.06), rnd.uniform(-0.04, -0.02), "moderate", "Assessment Cluster C"),
+    ]
+
+    features = []
+    for dx, dy, sev, name in offsets:
+        features.append({
+            "type": "Feature",
+            "properties": {"name": name, "severity": sev},
+            "geometry": {"type": "Point", "coordinates": [lon + dx, lat + dy]},
+        })
+
+    summary_prompt = (
+        f"Given a disaster assessment for '{scenario}', we created three assessment clusters "
+        "at varying severities (severe/moderate). Write a terse 4–6 bullet situational picture "
+        "prioritizing survey corridors and initial safety checks."
+    )
+    summary = llm.invoke(summary_prompt).content
+
+    return {"features": features, "summary": summary}
+
+# ---------------- Tools & Agent ----------------
 tools = [
     Tool(
         name="EONET Hazard Scan",
@@ -130,6 +171,7 @@ data_analyst = initialize_agent(
     verbose=True,
     handle_parsing_errors=True,
 )
+
 
 # # --- Interactive loop ---
 # print("🚀 Chat with Data Analyst Agent (type 'exit' to quit)\n")
