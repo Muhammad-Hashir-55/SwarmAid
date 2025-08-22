@@ -4,7 +4,6 @@ from agents.medic_coordinator import medic_coordinator
 from agents.logistics_manager import logistics_manager, compute_route_features
 from agents.critic import critic
 from geopy.geocoders import Nominatim
-import random
 
 
 def generate_geojson(scenario: str):
@@ -29,20 +28,32 @@ def generate_geojson(scenario: str):
     # Example Damage Zone A
     features.append({
         "type": "Feature",
-        "properties": {"name": "Damage Zone A", "severity": "severe"},
+        "properties": {
+            "name": "Damage Zone A",
+            "severity": "severe",
+            "type": "damage"   # ✅ tag for frontend
+        },
         "geometry": {"type": "Point", "coordinates": [lon, lat]}
     })
 
     # Example Damage Zone B (slightly offset)
     features.append({
         "type": "Feature",
-        "properties": {"name": "Damage Zone B", "severity": "moderate"},
+        "properties": {
+            "name": "Damage Zone B",
+            "severity": "moderate",
+            "type": "damage"   # ✅ tag for frontend
+        },
         "geometry": {"type": "Point", "coordinates": [lon + 0.05, lat + 0.05]}
     })
 
     # ✅ Add Logistics Manager route features
     try:
         route_pack = compute_route_features(scenario)
+        for f in route_pack["features"]:
+            if "properties" not in f:
+                f["properties"] = {}
+            f["properties"]["type"] = "route"   # ✅ tag all logistics routes
         features.extend(route_pack["features"])
     except Exception as e:
         print(f"⚠️ Logistics route generation failed: {e}")
@@ -71,6 +82,7 @@ def run_simulation(scenario: str):
     try:
         triage = medic_coordinator.run(f"Prioritize medical needs based on {analysis}")
         logs.append({"agent": "Medic Coordinator", "response": triage})
+        # 🔹 If in future we add geo features for triage, set `type: triage`
     except Exception as e:
         triage = f"⚠️ Error: {e}"
         logs.append({"agent": "Medic Coordinator", "response": triage})
@@ -81,7 +93,6 @@ def run_simulation(scenario: str):
         routes_text = logistics_manager.run(f"Plan safe supply routes based on {analysis} and {triage}")
         route_pack = compute_route_features(scenario)
         logs.append({"agent": "Logistics Manager", "response": routes_text})
-        # Also include the structured route summary from compute_route_features
         if route_pack.get("summary"):
             logs.append({"agent": "Logistics Manager (GeoJSON)", "response": route_pack["summary"]})
     except Exception as e:
@@ -95,7 +106,7 @@ def run_simulation(scenario: str):
     except Exception as e:
         logs.append({"agent": "Critic", "response": f"⚠️ Error: {e}"})
 
-    # ✅ Build final GeoJSON (damage zones + routes)
+    # ✅ Build final GeoJSON
     geojson = generate_geojson(scenario)
 
     return {"scenario": scenario, "logs": logs, "geojson": geojson}
