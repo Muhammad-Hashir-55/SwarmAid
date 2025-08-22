@@ -1,34 +1,51 @@
 // app/about/page.js
 export default function About() {
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold mb-6">About SwarmAid</h1>
-      <p className="text-gray-300 leading-relaxed mb-6">
-        SwarmAid is an AI-powered disaster response system built during our Hackathon project. 
-        It simulates how multiple specialized AI agents – Data Analyst, Medic Coordinator, Logistics Manager, and Critic –
-        can collaborate to analyze crises in real-time.
+    <div className="max-w-5xl mx-auto px-6 py-12 text-gray-200">
+      <h1 className="text-4xl font-bold mb-8">About SwarmAid</h1>
+      <p className="leading-relaxed mb-6">
+        <span className="font-semibold text-blue-400">SwarmAid</span> is an
+        AI-powered disaster response system created during our Hackathon project.  
+        It demonstrates how multiple specialized AI agents – working like a human
+        response team – can collaborate in real time to analyze crises, identify risks,
+        and guide emergency operations.
       </p>
 
-      <h2 className="text-2xl font-semibold mt-10 mb-4">Our Mission</h2>
-      <p className="text-gray-300 mb-6">
-        Disasters strike without warning. Our mission is to use cutting-edge AI and real-world data 
-        (satellite imagery, social media, routing APIs) to assist first responders, NGOs, and governments 
-        in saving lives more efficiently.
+      <h2 className="text-2xl font-semibold mt-10 mb-4">🌍 Our Mission</h2>
+      <p className="mb-6">
+        Disasters strike without warning. Our mission is to harness AI and real-world
+        data sources (satellite feeds, social media signals, routing APIs) to provide
+        first responders, NGOs, and governments with actionable intelligence – faster,
+        smarter, and more efficiently – to save lives.
       </p>
 
-      <h2 className="text-2xl font-semibold mt-10 mb-4">The Team</h2>
-      <ul className="space-y-2 text-gray-300">
-        <li>👨‍💻 <span className="font-medium">Data Analyst Agent</span> – interprets disaster zones.</li>
-        <li>🚑 <span className="font-medium">Medic Coordinator Agent</span> – triages urgent medical needs.</li>
-        <li>🚚 <span className="font-medium">Logistics Manager Agent</span> – plans safe delivery routes.</li>
-        <li>🧐 <span className="font-medium">Critic Agent</span> – validates and improves the response plan.</li>
+      <h2 className="text-2xl font-semibold mt-10 mb-4">🤖 The Agents</h2>
+      <ul className="space-y-3">
+        <li>
+          👨‍💻 <span className="font-medium text-white">Data Analyst</span> – scans hazards and
+          interprets damage zones from satellite and event data.
+        </li>
+        <li>
+          🚑 <span className="font-medium text-white">Medic Coordinator</span> – analyzes
+          social media reports to triage urgent medical needs.
+        </li>
+        <li>
+          🚚 <span className="font-medium text-white">Logistics Manager</span> – plans safe
+          supply routes and staging operations for aid delivery.
+        </li>
+        <li>
+          🧐 <span className="font-medium text-white">Critic</span> – audits, validates, and
+          strengthens the overall response plan.
+        </li>
       </ul>
 
-      <h2 className="text-2xl font-semibold mt-10 mb-4">Hackathon Context</h2>
-      <p className="text-gray-300">
-        This project was built to demonstrate the power of multi-agent collaboration in crisis response. 
-        Future versions will integrate live data sources such as NASA disaster feeds, OpenRouteService, 
-        and Twitter/X APIs for fully automated emergency intelligence.
+      <h2 className="text-2xl font-semibold mt-10 mb-4">🚀 Hackathon Context</h2>
+      <p className="mb-6">
+        SwarmAid was built as a <span className="text-blue-400">hackathon demo</span> to
+        showcase the potential of multi-agent collaboration in emergency response.  
+        Future iterations will deepen the integration with live data sources such as
+        NASA EONET, OpenRouteService, and Twitter/X APIs, making the system closer to a
+        real-time disaster intelligence platform.
       </p>
     </div>
   );
