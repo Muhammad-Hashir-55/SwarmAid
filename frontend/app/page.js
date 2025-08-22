@@ -41,7 +41,7 @@ export default function Page() {
     setErr("");
     setFetching(true);
     try {
-      const url = `http://127.0.0.1:8000/simulate?scenario=${encodeURIComponent(scenario)}`;
+      const url = `https://swarmaid.onrender.com/simulate?scenario=${encodeURIComponent(scenario)}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
